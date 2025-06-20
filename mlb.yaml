@@ -1,0 +1,79 @@
+- type: custom-api
+  title: Baseball
+  url: "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+  cache: 15s
+  options:
+    team: PHI
+  template: |
+    {{ $games := .JSON.Array "games" }}
+    {{ $yourTeam := .Options.StringOr "team" "ALL" }}
+    {{ if eq (len $games) 0 }}
+        <div>No games scheduled.</div>
+    {{ else }}
+        <div>
+            <ul class="visible">
+                {{ range $i, $g := $games }}
+                    {{ if or 
+                        (eq $yourTeam "ALL") 
+                        (eq ($g.String "competitions.0.competitors.0.team.abbreviation") $yourTeam) 
+                        (eq ($g.String "competitions.0.competitors.1.team.abbreviation") $yourTeam)
+                    }}
+                        {{ template "mlb-game" $g }}
+                    {{ end }}
+                {{ end }}
+            </ul>
+        </div>
+    {{ end }}
+  
+    {{ define "mlb-game" }}
+        {{ $state := .String "competitions.0.status.type.name" }}
+        {{ $away := index (.Array "competitions.0.competitors") 1 }}
+        {{ $home := index (.Array "competitions.0.competitors") 0 }}
+        {{ $awayRec := (index ($away.Array "records") 0).String "summary" }}
+        {{ $homeRec := (index ($home.Array "records") 0).String "summary" }}
+        
+        <hr />
+        <div style="display: flex; flex-direction: column; margin-top: 5px; margin-bottom: 5px;">
+            <div style="display: flex; justify-content: space-between;">
+                <div style="display: flex; flex-direction: row;">
+                    <img src="{{ $away.String "team.logo" }}" alt="{{ $away.String "team.abbreviation" }}" style="width:24px; height:24px; margin: 4px;"/>
+                    <span style="display:flex; flex-direction: column; margin: 4px;">
+                        <span style="font-weight: bold;">{{ $away.String "team.abbreviation" }}</span>
+                        <span style="font-size:0.7em;color:var(--glance-muted-text)">({{ $homeRec }})</span>
+                    </span>
+                    {{ if ne $state "STATUS_SCHEDULED" }}
+                        <div style="display: flex; align-content: center;">
+                            <p style="margin: 4px; font-size: 1.5em; font-weight: bold;">{{ $away.String "score" }}</p>
+                        </div>
+                    {{ end }}
+                </div>
+                
+                <div style="display: flex; flex-direction: row;">
+                    {{ if ne $state "STATUS_SCHEDULED" }}
+                        <div style="display: flex; align-content: center;">
+                            <p style="margin: 4px; font-size: 1.5em; font-weight: bold;">{{ $home.String "score" }}</p>
+                        </div>
+                    {{ end }}
+                    <span style="display:flex; flex-direction: column; margin: 4px;">
+                        <span style="font-weight: bold;">{{ $home.String "team.abbreviation" }}</span>
+                        <span style="font-size:0.7em;color:var(--glance-muted-text)">({{ $homeRec }})</span>
+                    </span>
+                    <img src="{{ $home.String "team.logo" }}" alt="{{ $home.String "team.abbreviation" }}" style="width:24px; height:24px; margin: 4px;"/>
+                </div>
+            </div>
+            
+            <div style="display: flex; width: 100%; justify-content: center;">
+                <span>
+                    {{ if eq $state "STATUS_IN_PROGRESS" }}
+                        {{ $period := .String "competitions.0.status.period" }}
+                        <p style="font-size:0.85em;font-weight:500;">{{ .String "competitions.0.status.type.detail" }}</span>
+                        <p style="font-size:0.85em;font-weight:500;">{{ .String "competitions.0.situation.lastPlay.text" }}</p>
+                    {{ else }}
+                        <p style="font-size:0.85em;font-weight:500;">{{ .String "competitions.0.status.type.shortDetail" }}</p>
+                    {{ end }}
+                </span>
+            </div>
+        </div>
+        <hr />
+        
+    {{ end }}
