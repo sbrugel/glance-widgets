@@ -5,14 +5,14 @@
   options:
     team: PHI
   template: |
-    {{ $games := .JSON.Array "games" }}
+    {{ $events := .JSON.Array "events" }}
     {{ $yourTeam := .Options.StringOr "team" "ALL" }}
-    {{ if eq (len $games) 0 }}
+    {{ if eq (len $events) 0 }}
         <div>No games scheduled.</div>
     {{ else }}
         <div>
             <ul class="visible">
-                {{ range $i, $g := $games }}
+                {{ range $i, $g := $events }}
                     {{ if or 
                         (eq $yourTeam "ALL") 
                         (eq ($g.String "competitions.0.competitors.0.team.abbreviation") $yourTeam) 
@@ -62,16 +62,28 @@
                 </div>
             </div>
             
-            <div style="display: flex; width: 100%; justify-content: center;">
-                <span>
-                    {{ if eq $state "STATUS_IN_PROGRESS" }}
-                        {{ $period := .String "competitions.0.status.period" }}
-                        <p style="font-size:0.85em;font-weight:500;">{{ .String "competitions.0.status.type.detail" }}</span>
-                        <p style="font-size:0.85em;font-weight:500;">{{ .String "competitions.0.situation.lastPlay.text" }}</p>
+            <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                {{ if eq $state "STATUS_IN_PROGRESS" }}
+                    {{ $circles := "" }}
+                    {{ if eq (.String "competitions.0.situation.balls") "0" }}
+                        {{ $circles = "○ ○ ○" }}
                     {{ else }}
-                        <p style="font-size:0.85em;font-weight:500;">{{ .String "competitions.0.status.type.shortDetail" }}</p>
+                        {{ if eq (.String "competitions.0.situation.balls") "1" }}
+                            {{ $circles = "● ○ ○" }}
+                        {{ else }}
+                            {{ if eq (.String "competitions.0.situation.balls") "2" }}
+                                {{ $circles = "● ● ○" }}
+                            {{ else }}
+                                {{ $circles = "● ● ●" }}
+                            {{ end }}
+                        {{ end }}
                     {{ end }}
-                </span>
+                    
+                    <p style="font-size:0.85em; font-weight:500;">{{ .String "competitions.0.status.type.detail" }}</p>
+                    <p style="font-size:0.85em; font-weight:500;">{{ .String "competitions.0.situation.balls" }}-{{ .String "competitions.0.situation.strikes" }} | {{ $circles }}</p>
+                {{ else }}
+                    <p style="font-size:0.85em; font-weight:500;">{{ .String "competitions.0.status.type.shortDetail" }}</p>
+                {{ end }}
             </div>
         </div>
         <hr />
